@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<profiles version="23">
+  <profile kind="CodeFormatterProfile" name="JShellX" version="23">
+    <!-- Allow single-line unbraced if/else/loop bodies to stay on one line -->
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_if_on_one_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_then_statement_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_else_statement_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_guardian_clause_on_one_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_for_body_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_while_body_on_same_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.keep_simple_do_while_body_on_same_line" value="true"/>
+
+    <!-- Allow compact single-line if/loop formatting (wrap only when line exceeds limit) -->
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_compact_if" value="16"/>
+    <setting id="org.eclipse.jdt.core.formatter.alignment_for_compact_loop" value="16"/>
+
+    <!-- Other settings -->
+    <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
+  </profile>
+</profiles>
