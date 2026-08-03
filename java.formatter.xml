@@ -14,6 +14,24 @@
     <setting id="org.eclipse.jdt.core.formatter.alignment_for_compact_if" value="16"/>
     <setting id="org.eclipse.jdt.core.formatter.alignment_for_compact_loop" value="16"/>
 
+    <!-- Keep empty method and constructor bodies on one line: Example: public void test() {} -->
+    <setting id="org.eclipse.jdt.core.formatter.keep_method_body_on_one_line" value="one_line_if_empty"/>
+
+    <!-- Keep method and constructor opening braces on the same line as their declarations -->
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_method_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_before_opening_brace_in_method_declaration" value="insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_constructor_declaration" value="end_of_line"/>
+    <setting id="org.eclipse.jdt.core.formatter.insert_space_before_opening_brace_in_constructor_declaration" value="insert"/>
+
+    <!-- Keep empty type declarations on one line and place opening braces on the declaration line -->
+    <setting id="org.eclipse.jdt.core.formatter.keep_empty_type_declaration_on_one_line" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.brace_position_for_type_declaration" value="end_of_line"/>
+    
+    <!-- Enable the use of special formatter on/off( @formatter:on/@formatter:off) tags in comments. -->
+    <setting id="org.eclipse.jdt.core.formatter.use_on_off_tags" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.disabling_tag" value="@formatter:off"/>
+    <setting id="org.eclipse.jdt.core.formatter.enabling_tag" value="@formatter:on"/>
+    
     <!-- Other settings -->
     <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
   </profile>
