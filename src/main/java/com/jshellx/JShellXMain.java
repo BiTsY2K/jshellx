@@ -1,14 +1,13 @@
 package com.jshellx;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Stream;
 
+import com.jshellx.builtin.BuiltinRegistry;
+import com.jshellx.builtin.IoStreams;
 import com.jshellx.context.ShellContext;
+import com.jshellx.core.Shell;
 
 public class JShellXMain {
 
@@ -16,62 +15,14 @@ public class JShellXMain {
 
   private JShellXMain() {}
 
-  public static void main(String[] args) {
-    try {
-      System.exit(run(args));
-    } catch (Exception e) {
-    }
-  }
-
-  private static int run(String[] args) throws IOException {
+  public static void main(String[] args) throws IOException {
     ShellContext ctx = ShellContext.fromSystem();
+    BuiltinRegistry builtins = BuiltinRegistry.withDefaults();
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-    System.out.printf("JShellX %s  -  type 'help' for commands, Ctrl-D to quit.%n", VERSION);
+    IoStreams io = new IoStreams(System.in, System.out, System.err);
 
-    while (ctx.isRunning()) {
-      System.out.printf("jshellx %s> ", ctx.cwd());
-      System.out.flush();
-
-      String line = in.readLine();
-      if (line == null) break;
-      if (line.isBlank()) continue;
-
-      List<String> tokens = Arrays.stream(line.split("\\s+"))
-          .filter(t -> !t.isBlank()).toList();
-
-      switch (tokens.get(0)) {
-        case "exit" -> ctx.requestExit(0);
-        case "pwd" -> System.out.printf("%s%n", ctx.cwd());
-
-        case "cd" -> {
-          String target = tokens.size() > 1 ? tokens.get(1) : ctx.home();
-          try {
-            ctx.changeDirectory(target);
-          } catch (IOException e) {
-            System.out.printf("cd: %s%n", e.getMessage());
-          }
-        }
-
-        default -> {
-          try {
-            List<String> command = System.getProperty("os.name").toLowerCase().contains("win")
-                ? new java.util.ArrayList<>(Stream.concat(Stream.of("cmd.exe", "/c"), tokens.stream()).toList())
-                : List.of("sh", "-c", String.join(" ", tokens));
-
-            Process process = new ProcessBuilder(command).inheritIO().start();
-            int exitCode = process.waitFor();
-            if (exitCode != 0) System.out.printf("[exit %s]%n", exitCode);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            System.err.printf("jshellx: command execution interrupted");
-          } catch (IOException e) {
-
-          }
-          System.out.printf("jshellx: command not found: %s%n", tokens.get(0));
-        }
-      }
-    }
-
-    return 0;
+    io.out().printf("JShellX %s  -  type 'help' for commands, Ctrl-D to quit.%n", VERSION);
+    int code = new Shell(ctx, builtins, in, io).run();
+    System.exit(code);
   }
 }
