@@ -44,7 +44,10 @@ public final class Tokenizer {
           endWord();
           i++;
         }
+
         case '\'' -> singleQuoted();
+        case '"' -> doubleQuoted();
+
         default -> {
           word.append(c);
           inWord = true;
@@ -70,5 +73,29 @@ public final class Tokenizer {
     word.append(s, i + 1, end); // everything inside is literal
     inWord = true;
     i = end + 1;
+  }
+
+  private void doubleQuoted() throws ParseException {
+    i++; // opening quote
+    while (i < n) {
+      char c = s.charAt(i);
+      if (c == '"') {
+        i++;
+        inWord = true;
+        return;
+      }
+      if (c == '\\' && i + 1 < n && isDoubleQuoteEscape(s.charAt(i + 1))) {
+        word.append(s.charAt(i + 1));
+        i += 2;
+      } else {
+        word.append(c);
+        i++;
+      }
+    }
+    throw new ParseException("unterminated double quote");
+  }
+
+  private boolean isDoubleQuoteEscape(char c) {
+    return c == '"' || (posixEscapes && c == '\\');
   }
 }
