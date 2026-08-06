@@ -9,15 +9,18 @@ import com.jshellx.builtin.BuiltinCommand;
 import com.jshellx.builtin.BuiltinRegistry;
 import com.jshellx.builtin.IoStreams;
 import com.jshellx.context.ShellContext;
+import com.jshellx.parser.ParseException;
+import com.jshellx.parser.Token;
+import com.jshellx.parser.Tokenizer;
 
 public final class Shell {
-
-  public static final String VERSION = "1.0.0";
 
   private ShellContext ctx;
   private BuiltinRegistry builtins;
   private BufferedReader in;
   private IoStreams io;
+
+  private final Tokenizer tokenizer = new Tokenizer(!ShellContext.isWindows());
 
   public Shell(ShellContext ctx, BuiltinRegistry builtins,
       BufferedReader in, IoStreams io) {
@@ -37,7 +40,15 @@ public final class Shell {
       if (line == null) break;
       if (line.isBlank()) continue;
 
-      List<String> tokens = List.of(line.trim().split("\\s+"));
+      List<String> tokens;
+      try {
+        tokens = tokenizer.tokenize(line).stream().map(Token::text).toList();
+      } catch (ParseException e) {
+        io.err().println("jshellx: " + e.getMessage());
+        ctx.setLastExitCode(2);
+        continue;
+      }
+      if (tokens.isEmpty()) continue;
       ctx.setLastExitCode(execute(tokens));
     }
 

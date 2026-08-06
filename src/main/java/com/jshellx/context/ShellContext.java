@@ -35,7 +35,7 @@ public final class ShellContext {
   public int lastExitCode()   { return lastExitCode; }
   
   public void setLastExitCode(int code) { this.lastExitCode = code; }
-  public static boolean isWindow()      { return WINDOWS; }
+  public static boolean isWindows()      { return WINDOWS; }
 
   public String home()  { return System.getProperty("user.home"); }
   public Path cwd()     { return cwd; }

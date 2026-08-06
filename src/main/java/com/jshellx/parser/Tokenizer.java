@@ -1,0 +1,74 @@
+package com.jshellx.parser;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Splits a command line into tokens: whitespace separation, single quotes
+ * (literal),
+ * double quotes, and backslash escapes.
+ *
+ * <p>
+ * On Windows ({@code posixEscapes == false}) a backslash is kept literally
+ * unless it
+ * precedes a quote or space, so {@code C:\Users\me} keeps working.
+ */
+public final class Tokenizer {
+
+  private boolean posixEscapes;
+  private String s;
+  private int n;
+
+  private final List<Token> tokens = new ArrayList<>();
+  private final StringBuilder word = new StringBuilder();
+  private boolean inWord; // distinguishes "" (an empty word) from "no word yet"
+  private int i;
+
+  public Tokenizer(boolean posixEscapes) {
+    this.posixEscapes = posixEscapes;
+  }
+
+  public List<Token> tokenize(String input) throws ParseException {
+    tokens.clear();
+    word.setLength(0);
+    inWord = false;
+    i = 0;
+
+    this.s = input;
+    this.n = s.length();
+
+    while (i < n) {
+      char c = input.charAt(i);
+      switch (c) {
+        case ' ', '\t', '\r', '\n' -> {
+          endWord();
+          i++;
+        }
+        case '\'' -> singleQuoted();
+        default -> {
+          word.append(c);
+          inWord = true;
+          i++;
+        }
+      }
+    }
+    endWord();
+    return tokens;
+  }
+
+  private void endWord() {
+    if (inWord) {
+      tokens.add(new Token(Token.Type.WORD, word.toString()));
+      word.setLength(0);
+      inWord = false;
+    }
+  }
+
+  private void singleQuoted() throws ParseException {
+    int end = s.indexOf('\'', i + 1);
+    if (end < 0) throw new ParseException("unterminated single quote");
+    word.append(s, i + 1, end); // everything inside is literal
+    inWord = true;
+    i = end + 1;
+  }
+}
