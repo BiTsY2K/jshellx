@@ -47,6 +47,7 @@ public final class Tokenizer {
 
         case '\'' -> singleQuoted();
         case '"' -> doubleQuoted();
+        case '\\' -> backslash();
 
         default -> {
           word.append(c);
@@ -97,5 +98,25 @@ public final class Tokenizer {
 
   private boolean isDoubleQuoteEscape(char c) {
     return c == '"' || (posixEscapes && c == '\\');
+  }
+
+  private char peek(int offset) {
+    return i + offset < n ? s.charAt(i + offset) : '\0';
+  }
+
+  private void backslash() {
+    char next = peek(1);
+    if (i + 1 < n && isEscapable(next)) {
+      word.append(next);
+      i += 2;
+    } else {
+      word.append('\\');
+      i++;
+    }
+    inWord = true;
+  }
+
+  private boolean isEscapable(char c) {
+    return " \t'\"".indexOf(c) >= 0 || (posixEscapes && c == '\\');
   }
 }
