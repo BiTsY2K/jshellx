@@ -2,22 +2,28 @@ package com.jshellx.parser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Splits a command line into tokens: whitespace separation, single quotes
- * (literal),
- * double quotes, and backslash escapes.
+ * (literal), double quotes, and backslash escapes.
  *
  * <p>
  * On Windows ({@code posixEscapes == false}) a backslash is kept literally
- * unless it
- * precedes a quote or space, so {@code C:\Users\me} keeps working.
+ * unless it precedes a quote or space, so {@code C:\Users\me} keeps working.
  */
 public final class Tokenizer {
 
-  private boolean posixEscapes;
+  private final Function<String, String> variables;
+  private final boolean posixEscapes;
 
-  public Tokenizer(boolean posixEscapes) {
+  /**
+   * @param variables    resolves a variable name to its value (null = unset);
+   *                     receives "?" for the last exit status
+   * @param posixEscapes whether a backslash can escape another backslash
+   */
+  public Tokenizer(Function<String, String> variables, boolean posixEscapes) {
+    this.variables = variables;
     this.posixEscapes = posixEscapes;
   }
 
@@ -52,6 +58,7 @@ public final class Tokenizer {
           case '\'' -> singleQuoted();
           case '"' -> doubleQuoted();
           case '\\' -> backslash();
+          case '~' -> tilde();
 
           default -> {
             word.append(c);
@@ -121,7 +128,22 @@ public final class Tokenizer {
     }
 
     private boolean isEscapable(char c) {
-      return " \t'\"".indexOf(c) >= 0 || (posixEscapes && c == '\\');
+      return " \t'\"~".indexOf(c) >= 0 || (posixEscapes && c == '\\');
+    }
+
+    private void tilde() {
+      char next = peek(1);
+      // A '~' only means "home" at the very start of a word, before '/', or alone.
+      boolean eligible = !inWord && (next == '\0' || next == '/' ||
+          next == '\\' || next == ' ' || next == '\t');
+      if (eligible) {
+        String home = variables.apply("HOME");
+        word.append(home == null ? System.getProperty("user.home") : home);
+      } else {
+        word.append('~');
+      }
+      inWord = true;
+      i++;
     }
   }
 }

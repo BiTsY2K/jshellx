@@ -20,7 +20,7 @@ public final class Shell {
   private BufferedReader in;
   private IoStreams io;
 
-  private final Tokenizer tokenizer = new Tokenizer(!ShellContext.isWindows());
+  private final Tokenizer tokenizer = new Tokenizer(this::lookup, !ShellContext.isWindows());
 
   public Shell(ShellContext ctx, BuiltinRegistry builtins,
       BufferedReader in, IoStreams io) {
@@ -57,11 +57,17 @@ public final class Shell {
 
   private int execute(List<String> tokens) {
     Optional<BuiltinCommand> builtin = builtins.find(tokens.get(0));
-    if (builtin.isPresent())
+    if (builtin.isPresent()) {
       return builtin.get().execute(tokens.subList(0, tokens.size()), ctx, io);
+    }
 
     try {
-      Process process = new ProcessBuilder(tokens).directory(ctx.cwd().toFile()).inheritIO().start();
+      ProcessBuilder pb = new ProcessBuilder(tokens).directory(ctx.cwd().toFile()).inheritIO();
+      // the child gets OUR environment, not the JVM's
+      pb.environment().clear();
+      pb.environment().putAll(ctx.environment());
+
+      Process process = pb.start();
       int exitCode = process.waitFor();
       if (exitCode != 0) io.out().printf("[exit %s]%n", exitCode);
       return exitCode;
@@ -74,5 +80,12 @@ public final class Shell {
       return 127; // the conventional "not found" status
     }
 
+  }
+
+  /** Variable lookup used by the tokenizer. */
+  private String lookup(String name) {
+    if (name.equals("?")) return Integer.toString(ctx.lastExitCode());
+    String value = ctx.getEnv(name);
+    return (value == null && name.equals("HOME")) ? ctx.home() : value;
   }
 }
