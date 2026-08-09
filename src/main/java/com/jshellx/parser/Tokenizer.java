@@ -60,6 +60,13 @@ public final class Tokenizer {
           case '\\' -> backslash();
           case '~' -> tilde();
 
+          case '$' -> {
+            int before = word.length();
+            i = expand(i);
+            // An unquoted variable that expands to nothing must not create an empty word.
+            if (word.length() > before) inWord = true;
+          }
+
           default -> {
             word.append(c);
             inWord = true;
@@ -99,6 +106,8 @@ public final class Tokenizer {
         if (c == '\\' && i + 1 < n && isDoubleQuoteEscape(s.charAt(i + 1))) {
           word.append(s.charAt(i + 1));
           i += 2;
+        } else if (c == '$') {
+          i = expand(i);
         } else {
           word.append(c);
           i++;
@@ -108,7 +117,7 @@ public final class Tokenizer {
     }
 
     private boolean isDoubleQuoteEscape(char c) {
-      return c == '"' || (posixEscapes && c == '\\');
+      return c == '"' || c == '$' || (posixEscapes && c == '\\');
     }
 
     private char peek(int offset) {
@@ -128,7 +137,7 @@ public final class Tokenizer {
     }
 
     private boolean isEscapable(char c) {
-      return " \t'\"~".indexOf(c) >= 0 || (posixEscapes && c == '\\');
+      return " \t'\"$~".indexOf(c) >= 0 || (posixEscapes && c == '\\');
     }
 
     private void tilde() {
@@ -144,6 +153,40 @@ public final class Tokenizer {
       }
       inWord = true;
       i++;
+    }
+
+    /**
+     * Expands the variable reference starting at {@code at};
+     * returns the next index.
+     */
+    private int expand(int at) throws ParseException {
+      if (at + 1 >= n) {
+        word.append('$');
+        return at + 1;
+      }
+      char next = s.charAt(at + 1);
+      if (next == '?') {
+        append(variables.apply("?"));
+        return at + 2;
+      }
+      if (next == '{') {
+        int end = s.indexOf('}', at + 2);
+        if (end < 0) throw new ParseException("bad substitution: missing '}'");
+        append(variables.apply(s.substring(at + 2, end)));
+        return end + 1;
+      }
+      if (Character.isLetter(next) || next == '_') {
+        int j = at + 1;
+        while (j < n && (Character.isLetterOrDigit(s.charAt(j)) || s.charAt(j) == '_')) j++;
+        append(variables.apply(s.substring(at + 1, j)));
+        return j;
+      }
+      word.append('$'); // a lone '$' is literal
+      return at + 1;
+    }
+
+    private void append(String value) {
+      if (value != null) word.append(value);
     }
   }
 }
