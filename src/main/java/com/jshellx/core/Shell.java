@@ -2,30 +2,30 @@ package com.jshellx.core;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.List;
 import java.util.Optional;
 
 import com.jshellx.builtin.BuiltinCommand;
 import com.jshellx.builtin.BuiltinRegistry;
 import com.jshellx.builtin.IoStreams;
 import com.jshellx.context.ShellContext;
+import com.jshellx.parser.Command;
+import com.jshellx.parser.CommandParser;
 import com.jshellx.parser.ParseException;
-import com.jshellx.parser.Token;
-import com.jshellx.parser.Tokenizer;
+import com.jshellx.parser.Pipeline;
 
 public final class Shell {
 
   private ShellContext ctx;
   private BuiltinRegistry builtins;
+  private final CommandParser parser;
   private BufferedReader in;
   private IoStreams io;
 
-  private final Tokenizer tokenizer = new Tokenizer(this::lookup, !ShellContext.isWindows());
-
-  public Shell(ShellContext ctx, BuiltinRegistry builtins,
+  public Shell(ShellContext ctx, BuiltinRegistry builtins, CommandParser parser,
       BufferedReader in, IoStreams io) {
     this.ctx = ctx;
     this.builtins = builtins;
+    this.parser = parser;
     this.in = in;
     this.io = io;
   }
@@ -38,31 +38,30 @@ public final class Shell {
 
       String line = in.readLine();
       if (line == null) break;
-      if (line.isBlank()) continue;
 
-      List<String> tokens;
       try {
-        tokens = tokenizer.tokenize(line).stream().map(Token::text).toList();
+        Optional<Pipeline> pipeline = parser.parse(line);
+        if (pipeline.isEmpty()) continue;
+        io.out().println("parsed: " + pipeline.get()); // TEMPORARY: see the structure
+        ctx.setLastExitCode(execute(pipeline.get().stages().get(0))); // first stage only, for now
       } catch (ParseException e) {
         io.err().println("jshellx: " + e.getMessage());
         ctx.setLastExitCode(2);
         continue;
       }
-      if (tokens.isEmpty()) continue;
-      ctx.setLastExitCode(execute(tokens));
     }
 
     return ctx.exitCode();
   }
 
-  private int execute(List<String> tokens) {
-    Optional<BuiltinCommand> builtin = builtins.find(tokens.get(0));
+  private int execute(Command cmd) {
+    Optional<BuiltinCommand> builtin = builtins.find(cmd.name());
     if (builtin.isPresent()) {
-      return builtin.get().execute(tokens.subList(0, tokens.size()), ctx, io);
+      return builtin.get().execute(cmd.args().subList(1, cmd.args().size()), ctx, io);
     }
 
     try {
-      ProcessBuilder pb = new ProcessBuilder(tokens).directory(ctx.cwd().toFile()).inheritIO();
+      ProcessBuilder pb = new ProcessBuilder(cmd.args()).directory(ctx.cwd().toFile()).inheritIO();
       // the child gets OUR environment, not the JVM's
       pb.environment().clear();
       pb.environment().putAll(ctx.environment());
@@ -76,16 +75,9 @@ public final class Shell {
       io.err().printf("jshellx: command execution interrupted%n%s", e.getMessage());
       return 130;
     } catch (IOException e) {
-      io.out().printf("jshellx: command not found: %s%n", tokens.get(0));
+      io.out().printf("jshellx: command not found: %s%n", cmd.name());
       return 127; // the conventional "not found" status
     }
 
-  }
-
-  /** Variable lookup used by the tokenizer. */
-  private String lookup(String name) {
-    if (name.equals("?")) return Integer.toString(ctx.lastExitCode());
-    String value = ctx.getEnv(name);
-    return (value == null && name.equals("HOME")) ? ctx.home() : value;
   }
 }

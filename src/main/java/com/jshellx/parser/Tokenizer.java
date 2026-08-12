@@ -67,6 +67,28 @@ public final class Tokenizer {
             if (word.length() > before) inWord = true;
           }
 
+          case '|' -> {
+            endWord();
+            tokens.add(new Token(Token.Type.PIPE, "|"));
+            i++;
+          }
+          case '<' -> {
+            endWord();
+            tokens.add(new Token(Token.Type.REDIRECT_IN, "<"));
+            i++;
+          }
+
+          case '>' -> {
+            endWord();
+            if (peek(1) == '>') {
+              tokens.add(new Token(Token.Type.REDIRECT_APPEND, ">>"));
+              i += 2;
+            } else {
+              tokens.add(new Token(Token.Type.REDIRECT_OUT, ">"));
+              i++;
+            }
+          }
+
           default -> {
             word.append(c);
             inWord = true;
@@ -137,7 +159,7 @@ public final class Tokenizer {
     }
 
     private boolean isEscapable(char c) {
-      return " \t'\"$~".indexOf(c) >= 0 || (posixEscapes && c == '\\');
+      return " \t'\"$|<>~".indexOf(c) >= 0 || (posixEscapes && c == '\\');
     }
 
     private void tilde() {

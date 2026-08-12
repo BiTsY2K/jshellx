@@ -8,6 +8,7 @@ import com.jshellx.builtin.BuiltinRegistry;
 import com.jshellx.builtin.IoStreams;
 import com.jshellx.context.ShellContext;
 import com.jshellx.core.Shell;
+import com.jshellx.parser.CommandParser;
 
 public class JShellXMain {
 
@@ -20,9 +21,10 @@ public class JShellXMain {
     BuiltinRegistry builtins = BuiltinRegistry.withDefaults();
     BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
     IoStreams io = new IoStreams(System.in, System.out, System.err);
+    CommandParser parser = new CommandParser(ctx);
 
     io.out().printf("JShellX %s  -  type 'help' for commands, Ctrl-D to quit.%n", VERSION);
-    int code = new Shell(ctx, builtins, in, io).run();
+    int code = new Shell(ctx, builtins, parser, in, io).run();
     System.exit(code);
   }
 }
