@@ -15,7 +15,7 @@ public final class EchoCommand implements BuiltinCommand {
 
   @Override
   public int execute(List<String> args, ShellContext ctx, IoStreams io) {
-    io.out().println(String.join(" ", args.subList(1, args.size()))); // args includes the command name at index 0
+    io.out().println(String.join(" ", args.subList(0, args.size()))); // args includes the command name at index 0
     return 0;
   }
 }
