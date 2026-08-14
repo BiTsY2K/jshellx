@@ -48,6 +48,9 @@ public final class ShellContext {
   public int lastExitCode()             { return lastExitCode; }
   public void setLastExitCode(int code) { this.lastExitCode = code; }
 
+  /** Resolves a (possibly relative) path against the shell's working directory. */
+  public Path resolve(String path) { return cwd.resolve(path).normalize(); }
+
   public Map<String, String> environment()  { return Collections.unmodifiableMap(env); }
   public void setEnv(String name, String value) { env.put(name, value); }
   public void unsetEnv(String name) { env.remove(name); }

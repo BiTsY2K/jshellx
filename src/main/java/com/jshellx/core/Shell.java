@@ -8,24 +8,30 @@ import com.jshellx.builtin.BuiltinCommand;
 import com.jshellx.builtin.BuiltinRegistry;
 import com.jshellx.builtin.IoStreams;
 import com.jshellx.context.ShellContext;
+import com.jshellx.exec.ProcessLauncher;
+import com.jshellx.exec.ProcessLauncher.CommandNotFoundException;
 import com.jshellx.parser.Command;
 import com.jshellx.parser.CommandParser;
 import com.jshellx.parser.ParseException;
 import com.jshellx.parser.Pipeline;
+
+import static java.lang.ProcessBuilder.Redirect.INHERIT;
 
 public final class Shell {
 
   private ShellContext ctx;
   private BuiltinRegistry builtins;
   private final CommandParser parser;
+  private final ProcessLauncher launcher;
   private BufferedReader in;
   private IoStreams io;
 
   public Shell(ShellContext ctx, BuiltinRegistry builtins, CommandParser parser,
-      BufferedReader in, IoStreams io) {
+      ProcessLauncher launcher, BufferedReader in, IoStreams io) {
     this.ctx = ctx;
     this.builtins = builtins;
     this.parser = parser;
+    this.launcher = launcher;
     this.in = in;
     this.io = io;
   }
@@ -61,22 +67,20 @@ public final class Shell {
     }
 
     try {
-      ProcessBuilder pb = new ProcessBuilder(cmd.args()).directory(ctx.cwd().toFile()).inheritIO();
-      // the child gets OUR environment, not the JVM's
-      pb.environment().clear();
-      pb.environment().putAll(ctx.environment());
-
-      Process process = pb.start();
+      Process process = launcher.start(cmd.args(), ctx, INHERIT, INHERIT);
       int exitCode = process.waitFor();
       if (exitCode != 0) io.out().printf("[exit %s]%n", exitCode);
       return exitCode;
+    } catch (CommandNotFoundException e) {
+      io.err().println("jshellx: command not found: " + e.command());
+      return 127; // the conventional "not found" status
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       io.err().printf("jshellx: command execution interrupted%n%s", e.getMessage());
       return 130;
     } catch (IOException e) {
-      io.out().printf("jshellx: command not found: %s%n", cmd.name());
-      return 127; // the conventional "not found" status
+      io.err().println("jshellx: " + e.getMessage());
+      return 1;
     }
 
   }
