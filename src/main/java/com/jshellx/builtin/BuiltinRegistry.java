@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
 
+import com.jshellx.builtin.commands.CdCommand;
 import com.jshellx.builtin.commands.EchoCommand;
 import com.jshellx.builtin.commands.EnvCommand;
 import com.jshellx.builtin.commands.PwdCommand;
@@ -25,6 +26,7 @@ public final class BuiltinRegistry {
   public static BuiltinRegistry withDefaults() {
     BuiltinRegistry registry = new BuiltinRegistry();
     registry.register(new EchoCommand());
+    registry.register(new CdCommand());
     registry.register(new PwdCommand());
     registry.register(new EnvCommand());
     return registry;
