@@ -20,9 +20,16 @@ public final class CdCommand implements BuiltinCommand {
       io.err().println("cd: too many arguments");
       return 1;
     }
-    String target = args.isEmpty() ? ctx.home() : args.get(0);
+    boolean echoTarget = args.isEmpty() ? false : (args.get(0).equals("-") ? true : false);
+    String target = args.isEmpty() ? ctx.home() : (args.get(0).equals("-") ? ctx.getEnv("OLDPWD") : args.get(0));
+    if (target == null) {
+      io.err().println("cd: OLDPWD not set");
+      return 1;
+    }
+
     try {
       ctx.changeDirectory(target);
+      if (echoTarget) io.out().println(ctx.cwd());
       return 0;
     } catch (IOException e) {
       io.err().println("cd: " + e.getMessage());
