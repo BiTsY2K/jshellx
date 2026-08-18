@@ -29,6 +29,7 @@ public final class Shell {
 
       String line = in.readLine();
       if (line == null) break;
+      if (line.isBlank()) continue;
       ctx.setLastExitCode(evaluator.evaluate(line));
     }
 
