@@ -85,11 +85,6 @@ public final class Evaluator {
   }
 
   public int execute(Pipeline pipeline) {
-    if (pipeline.stages().size() > 1) {
-      terminal.err().println("jshellx: pipelines are not supported yet");
-      return 2;
-    }
-
     List<Command> stages = pipeline.stages();
     List<Closeable> opened = new ArrayList<>(); // everything we must close afterwards
     List<Thread> pumps = new ArrayList<>();
@@ -102,7 +97,7 @@ public final class Evaluator {
 
     try {
       for (int i = 0; i < stages.size(); i++) {
-        Command cmd = stages.get(0);
+        Command cmd = stages.get(i);
         boolean last = i == stages.size() - 1;
 
         // ---- resolve this stage's stdin / stdout ---- //
@@ -126,7 +121,7 @@ public final class Evaluator {
           // Output goes to: file, or an in-memory buffer (if piped on), or the terminal.
           ByteArrayOutputStream buffer = (sink == null && !last) ? new ByteArrayOutputStream() : null;
           OutputStream dest = sink != null ? sink : buffer;
-          PrintStream out = dest != null ? new PrintStream(sink, false, StandardCharsets.UTF_8) : terminal.out();
+          PrintStream out = dest != null ? new PrintStream(dest, false, StandardCharsets.UTF_8) : terminal.out();
           status = runBuiltin(builtin.get(), cmd, new IoStreams(in != null ? in : terminal.in(), out, terminal.err()));
           out.flush();
 
