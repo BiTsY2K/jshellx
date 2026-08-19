@@ -20,6 +20,7 @@ public final class ShellContext {
   private boolean running = true;
 
   private final Map<String, String> env;
+  private final CommandHistory history = new CommandHistory();
 
   public static ShellContext fromSystem() {
     return new ShellContext(Path.of(System.getProperty("user.dir")), System.getenv());
@@ -55,6 +56,8 @@ public final class ShellContext {
   public void setEnv(String name, String value) { env.put(name, value); }
   public void unsetEnv(String name) { env.remove(name); }
   public String getEnv(String name) { return env.get(name); }
+
+  public CommandHistory history()   { return history; }
   // @formatter:on
 
   public String home() {
