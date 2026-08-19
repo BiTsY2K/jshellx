@@ -1,5 +1,7 @@
 package com.jshellx.builtin;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -7,6 +9,7 @@ import java.util.TreeMap;
 import com.jshellx.builtin.commands.CdCommand;
 import com.jshellx.builtin.commands.EchoCommand;
 import com.jshellx.builtin.commands.EnvCommand;
+import com.jshellx.builtin.commands.HelpCommand;
 import com.jshellx.builtin.commands.HistoryCommand;
 import com.jshellx.builtin.commands.PwdCommand;
 
@@ -17,6 +20,10 @@ public final class BuiltinRegistry {
   public BuiltinRegistry register(BuiltinCommand command) {
     commands.put(command.name(), command);
     return this;
+  }
+
+  public Collection<BuiltinCommand> all() {
+    return Collections.unmodifiableCollection(commands.values());
   }
 
   public Optional<BuiltinCommand> find(String name) {
@@ -31,6 +38,7 @@ public final class BuiltinRegistry {
     registry.register(new PwdCommand());
     registry.register(new EnvCommand());
     registry.register(new HistoryCommand());
+    registry.register(new HelpCommand(registry));
     return registry;
   }
 }
