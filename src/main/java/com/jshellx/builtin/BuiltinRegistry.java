@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.TreeMap;
 
 import com.jshellx.builtin.commands.CdCommand;
+import com.jshellx.builtin.commands.ClearCommand;
 import com.jshellx.builtin.commands.EchoCommand;
 import com.jshellx.builtin.commands.EnvCommand;
 import com.jshellx.builtin.commands.HelpCommand;
@@ -33,10 +34,11 @@ public final class BuiltinRegistry {
   /** The standard JshellX command set. */
   public static BuiltinRegistry withDefaults() {
     BuiltinRegistry registry = new BuiltinRegistry();
-    registry.register(new EchoCommand());
     registry.register(new CdCommand());
     registry.register(new PwdCommand());
     registry.register(new EnvCommand());
+    registry.register(new EchoCommand());
+    registry.register(new ClearCommand());
     registry.register(new HistoryCommand());
     registry.register(new HelpCommand(registry));
     return registry;
