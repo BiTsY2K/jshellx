@@ -25,6 +25,8 @@ public final class Shell {
   /** Runs until {@code exit} or Ctrl-D. @return the process exit code */
   public int run() throws IOException {
     Path historyFile = Path.of(ctx.cwd().toString(), ".jshellx_history");
+    ctx.history().load(historyFile);
+
     try {
       while (ctx.isRunning()) {
         io.out().printf("jshellx %s> ", ctx.cwd());
