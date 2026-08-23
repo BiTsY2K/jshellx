@@ -14,7 +14,7 @@ import java.util.List;
  */
 public final class CommandHistory {
 
-  private static final int MAX_SAVED = 2;
+  private static final int MAX_SAVED = 1000;
 
   private final List<String> entries = new ArrayList<>();
 

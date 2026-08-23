@@ -4,8 +4,10 @@ import com.jshellx.context.ShellContext;
 import com.jshellx.parser.Token.Type;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Turns a raw input line into a {@link Pipeline}: tokenize, then build stages.
@@ -29,7 +31,7 @@ public final class CommandParser {
 
   /** @return the pipeline, or empty for a blank line */
   public Optional<Pipeline> parse(String line) throws ParseException {
-    List<Token> tokens = tokenizer.tokenize(line);
+    List<Token> tokens = expandAliases(tokenizer.tokenize(line));
     if (tokens.isEmpty()) return Optional.empty();
 
     List<Command> stages = new ArrayList<>();
@@ -48,17 +50,13 @@ public final class CommandParser {
             throw new ParseException("syntax error: expected a file name after '" + t.text() + "'");
           }
           String target = tokens.get(++i).text();
+          // @formatter:off
           switch (t.type()) {
             case REDIRECT_IN -> stdin = target;
-            case REDIRECT_OUT -> {
-              stdout = target;
-              append = false;
-            }
-            default -> {
-              stdout = target;
-              append = true;
-            }
+            case REDIRECT_OUT -> { stdout = target;  append = false; }
+            default -> { stdout = target; append = true; }
           }
+          // @formatter:on
         }
         case PIPE -> { // close the current stage, start a new one
           stages.add(finishStage(args, stdin, stdout, append));
@@ -77,5 +75,42 @@ public final class CommandParser {
       throws ParseException {
     if (args.isEmpty()) throw new ParseException("syntax error: missing command");
     return new Command(args, in, out, append);
+  }
+
+  /**
+   * Replaces the first word of every command (start of line, or after a pipe)
+   * with its alias.
+   */
+  private List<Token> expandAliases(List<Token> tokens) throws ParseException {
+    List<Token> result = new ArrayList<>();
+    boolean commandPosition = true;
+    for (Token t : tokens) {
+      if (commandPosition && t.type() == Type.WORD) {
+        result.addAll(expandWord(t, new HashSet<>()));
+      } else {
+        result.add(t);
+      }
+      commandPosition = t.type() == Type.PIPE;
+    }
+    return result;
+  }
+
+  /**
+   * Recursive expansion; the {@code seen} set stops loops such as alias ls='ls
+   * --color'.
+   */
+  private List<Token> expandWord(Token word, Set<String> seen) throws ParseException {
+    String definition = ctx.aliases().get(word.text());
+    if (definition == null || !seen.add(word.text())) return List.of(word);
+
+    List<Token> expansion = tokenizer.tokenize(definition);
+    if (expansion.isEmpty()) return List.of(word);
+
+    List<Token> out = new ArrayList<>();
+    Token first = expansion.get(0);
+    if (first.type() == Type.WORD) out.addAll(expandWord(first, seen));
+    else out.add(first);
+    out.addAll(expansion.subList(1, expansion.size()));
+    return out;
   }
 }

@@ -20,6 +20,7 @@ public final class ShellContext {
   private boolean running = true;
 
   private final Map<String, String> env;
+  private final Map<String, String> aliases = new TreeMap<>();
   private final CommandHistory history = new CommandHistory();
 
   public static ShellContext fromSystem() {
@@ -57,7 +58,14 @@ public final class ShellContext {
   public void unsetEnv(String name) { env.remove(name); }
   public String getEnv(String name) { return env.get(name); }
 
+  // ---- history ------------------------------------------------------------ //
   public CommandHistory history()   { return history; }
+  
+  // ---- aliases ------------------------------------------------------------ //
+  public Map<String, String> aliases()    { return Collections.unmodifiableMap(aliases); }
+  public boolean removeAlias(String name) { return aliases.remove(name) != null; }
+  public void setAlias(String name, String value) { aliases.put(name, value); }
+
   // @formatter:on
 
   public String home() {
