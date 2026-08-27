@@ -5,9 +5,14 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Splits a command line into tokens: whitespace separation, single quotes
- * (literal), double quotes, and backslash escapes.
- *
+ * Splits a command line into tokens
+ * 
+ * <p>
+ * Supports: whitespace separation, single quotes (literal), double quotes
+ * (allow {@code $VAR} and a few escapes), backslash escapes, {@code $VAR},
+ * {@code ${VAR}}, {@code $?}, a leading {@code ~}, and the operators
+ * {@code | < > >>}.
+ * 
  * <p>
  * On Windows ({@code posixEscapes == false}) a backslash is kept literally
  * unless it precedes a quote or space, so {@code C:\Users\me} keeps working.

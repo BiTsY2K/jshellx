@@ -28,8 +28,8 @@ public final class PromptRenderer {
     PromptTheme theme = PromptTheme.byName(ctx.getEnv("JSHELLX_THEME"));
 
     sb.append(style("jshellx", GREEN, BOLD));
-    if (theme.showUserHost()) sb.append(style("[" + user + "@" + host + "]", GREEN, BOLD)).append(' ');
-    sb.append(style(displayPath(), BLUE, BOLD));
+    if (theme.showUserHost()) sb.append(style("[" + user + "@" + host + "]", GREEN, BOLD));
+    sb.append(' ').append(style(displayPath(), BLUE, BOLD));
 
     if (theme.showExitCode() && status != 0) sb.append(' ').append(style("[" + status + "]", RED));
     sb.append(' ').append(style(theme.symbol(), status == 0 ? GREEN : RED, BOLD)).append(' ');

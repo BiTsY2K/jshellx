@@ -9,9 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Turns a raw input line into a {@link Pipeline}: tokenize, then build stages.
- */
+/** Turns a raw input line into a {@link Pipeline}: tokenize, then build stages. */
 public final class CommandParser {
 
   private final ShellContext ctx;
@@ -50,13 +48,13 @@ public final class CommandParser {
             throw new ParseException("syntax error: expected a file name after '" + t.text() + "'");
           }
           String target = tokens.get(++i).text();
-          // @formatter:off
           switch (t.type()) {
+            // @formatter:off
             case REDIRECT_IN -> stdin = target;
             case REDIRECT_OUT -> { stdout = target;  append = false; }
             default -> { stdout = target; append = true; }
+            // @formatter:on
           }
-          // @formatter:on
         }
         case PIPE -> { // close the current stage, start a new one
           stages.add(finishStage(args, stdin, stdout, append));
@@ -77,10 +75,9 @@ public final class CommandParser {
     return new Command(args, in, out, append);
   }
 
-  /**
-   * Replaces the first word of every command (start of line, or after a pipe)
-   * with its alias.
-   */
+  // ---- alias expansion ---------------------------------------------------- //
+
+  /** Replaces the first word of every command (start of line, or after a pipe) with its alias. */
   private List<Token> expandAliases(List<Token> tokens) throws ParseException {
     List<Token> result = new ArrayList<>();
     boolean commandPosition = true;
@@ -95,10 +92,7 @@ public final class CommandParser {
     return result;
   }
 
-  /**
-   * Recursive expansion; the {@code seen} set stops loops such as alias ls='ls
-   * --color'.
-   */
+  /** Recursive expansion; the {@code seen} set stops loops such as alias ls='ls --color'. */
   private List<Token> expandWord(Token word, Set<String> seen) throws ParseException {
     String definition = ctx.aliases().get(word.text());
     if (definition == null || !seen.add(word.text())) return List.of(word);

@@ -34,5 +34,21 @@
     
     <!-- Other settings -->
     <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment_line_length" value="120"/>
+
+    <!-- Comment autowrap: join and re-wrap Javadoc/block/line comments to fit within 120 columns -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_javadoc_comments" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_block_comments" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_line_comments" value="true"/>
+    <!-- Do NOT join lines: preserve multi-line comments as the user wrote them; only wrap lines exceeding the limit -->
+    <setting id="org.eclipse.jdt.core.formatter.join_lines_in_comments" value="false"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.join_lines_in_comments" value="false"/>
+    <!-- Wrap long comments that exceed the column limit -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.wrap_before_binary_operator" value="true"/>
+    <!-- Preserve existing whitespace/formatting inside comments: false allows the formatter to reflow -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.preserve_white_space_between_code_and_line_comments" value="false"/>
+    <!-- Keep single-line Javadoc on one line when it fits: /** Short comment. */ -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.format_source_code" value="true"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
   </profile>
 </profiles>

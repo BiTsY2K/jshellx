@@ -16,8 +16,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Locates executables using the <em>shell's</em> PATH (not the JVM's), so
- * {@code env PATH=...} takes effect immediately. Honors PATHEXT on Windows.
+ * Locates executables using the <em>shell's</em> PATH (not the JVM's),
+ * so {@code env PATH=...} takes effect immediately. Honors PATHEXT on Windows.
  */
 public final class ExecutableFinder {
 

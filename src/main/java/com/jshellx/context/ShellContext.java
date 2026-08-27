@@ -9,6 +9,15 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
+/**
+ * Mutable state of one shell session: working directory, environment variables,
+ * aliases, last exit status and the "keep running" flag.
+ *
+ * <p>
+ * The JVM cannot change its own working directory, so the shell tracks its own
+ * {@code cwd} and passes it to every child process via
+ * {@link ProcessBuilder#directory}.
+ */
 public final class ShellContext {
 
   private static final boolean WINDOWS = System.getProperty("os.name", "")
@@ -35,28 +44,31 @@ public final class ShellContext {
     this.env.put("PWD", this.cwd.toString());
   }
 
-  public void requestExit(int code) {
-    this.exitCode = code;
-    this.running = false;
-  }
-
   // @formatter:off
   public static boolean isWindows() { return WINDOWS; }
 
   public Path cwd() { return cwd; }
-
+  
+  // ---- status / lifecycle ------------------------------------------------- //
   public boolean isRunning()  { return running; }
   public int exitCode()       { return exitCode; }
   public int lastExitCode()             { return lastExitCode; }
   public void setLastExitCode(int code) { this.lastExitCode = code; }
+  
+  public void requestExit(int code) { 
+    this.exitCode = code; 
+    this.running = false; 
+  }
+
 
   /** Resolves a (possibly relative) path against the shell's working directory. */
   public Path resolve(String path) { return cwd.resolve(path).normalize(); }
-
+  
+  // ---- environment -------------------------------------------------------- //
   public Map<String, String> environment()  { return Collections.unmodifiableMap(env); }
   public void setEnv(String name, String value) { env.put(name, value); }
-  public void unsetEnv(String name) { env.remove(name); }
   public String getEnv(String name) { return env.get(name); }
+  public void unsetEnv(String name) { env.remove(name); }
 
   // ---- history ------------------------------------------------------------ //
   public CommandHistory history()   { return history; }
