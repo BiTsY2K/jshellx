@@ -1,12 +1,12 @@
 package com.jshellx.core;
 
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 
-import com.jshellx.builtin.IoStreams;
 import com.jshellx.context.ShellContext;
 import com.jshellx.eval.Evaluator;
+import com.jshellx.ui.LineEditor;
 import com.jshellx.ui.PromptRenderer;
 
 import static com.jshellx.ui.Ansi.BOLD;
@@ -20,35 +20,47 @@ public final class Shell {
   private final ShellContext ctx;
   private final Evaluator evaluator;
   private final PromptRenderer prompt;
-  private final BufferedReader in;
-  private final IoStreams io;
+  private final LineEditor editor;
+  private final PrintStream out;
 
   public Shell(ShellContext ctx, Evaluator evaluator,
-      PromptRenderer prompt, BufferedReader in, IoStreams io) {
+      PromptRenderer prompt, LineEditor editor, PrintStream out) {
     this.ctx = ctx;
     this.evaluator = evaluator;
     this.prompt = prompt;
-    this.in = in;
-    this.io = io;
+    this.editor = editor;
+    this.out = out;
   }
 
   /** Runs until {@code exit} or Ctrl-D. @return the process exit code */
   public int run() throws IOException {
     Path historyFile = Path.of(ctx.cwd().toString(), ".jshellx_history");
     ctx.history().load(historyFile);
-    io.out().printf("%s  -  type 'help' for commands, Ctrl-D to quit%n", style("JshellX " + VERSION, CYAN, BOLD));
+    out.printf("%s  -  type 'help' for commands, Ctrl-D to quit.%n", style("JshellX " + VERSION, CYAN, BOLD));
+    if (!editor.isRaw()) out.println("(basic line mode: no tab completion or arrow-key history in this terminal)");
 
     try {
       while (ctx.isRunning()) {
-        io.out().printf(prompt.render());
-        io.out().flush();
+        LineEditor.Result result;
+        try {
+          result = editor.readLine(prompt.render());
+        } catch (IOException e) {
+          out.printf("jshellx: terminal error: %s" + e.getMessage());
+          ctx.requestExit(1);
+          break;
+        }
 
-        String line = in.readLine();
-        if (line == null) break;
-        if (line.isBlank()) continue;
-
-        ctx.history().add(line);
-        ctx.setLastExitCode(evaluator.evaluate(line));
+        // `result` is a sealed type, so this switch must cover every case.
+        switch (result) {
+          case LineEditor.Eof eof -> ctx.requestExit(ctx.lastExitCode());
+          case LineEditor.Interrupted interrupted -> ctx.setLastExitCode(130);
+          case LineEditor.Line line -> {
+            if (!line.text().isBlank()) {
+              ctx.history().add(line.text());
+              ctx.setLastExitCode(evaluator.evaluate(line.text()));
+            }
+          }
+        }
       }
     } finally {
       ctx.history().save(historyFile);
