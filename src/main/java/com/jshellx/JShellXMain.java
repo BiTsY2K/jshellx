@@ -39,7 +39,7 @@ public class JShellXMain {
     Evaluator evaluator = new Evaluator(ctx, builtins, parser, launcher, io);
 
     RawTerminal raw = RawTerminal.open().orElse(null); // null => basic line mode
-    LineEditor editor = new LineEditor(System.in, out, raw);
+    LineEditor editor = new LineEditor(System.in, out, ctx.history(), raw);
     int code = new Shell(ctx, evaluator, new PromptRenderer(ctx), editor, out).run();
     System.exit(code);
   }

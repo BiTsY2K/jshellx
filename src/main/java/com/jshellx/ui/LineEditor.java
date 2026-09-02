@@ -7,6 +7,9 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+import com.jshellx.context.CommandHistory;
+import com.jshellx.parser.Command;
+
 /**
  * A tiny readline replacement. (Version 1: type, backspace, Enter, Ctrl-C, Ctrl-D.)
  *
@@ -28,12 +31,14 @@ public final class LineEditor {
 
   private final InputStream in;
   private final PrintStream out;
+  private final CommandHistory history;
   private final RawTerminal terminal; // null => cooked fallback
   private BufferedReader cooked;
 
-  public LineEditor(InputStream in, PrintStream out, RawTerminal terminal) {
+  public LineEditor(InputStream in, PrintStream out, CommandHistory history, RawTerminal terminal) {
     this.in = in;
     this.out = out;
+    this.history = history;
     this.terminal = terminal;
   }
 
@@ -91,6 +96,8 @@ public final class LineEditor {
     private final String prompt;
     private final StringBuilder buf = new StringBuilder();
     private int pos; // cursor, as an index into buf
+    private int hist = history.size(); // history cursor (size() = the line being typed)
+    private String draft = ""; // the line being typed, saved while browsing history
 
     Edit(String prompt) {
       this.prompt = prompt;
@@ -122,7 +129,11 @@ public final class LineEditor {
               return new Eof();
             }
           }
+
+          case 16 -> historyPrevious();
+          case 14 -> historyNext();
           case 8, 127 -> backspace();
+
           default -> {
             if (c >= 32) insert(c);
           } // printable characters
@@ -149,6 +160,23 @@ public final class LineEditor {
       int tail = buf.codePointCount(pos, buf.length());
       if (tail > 0) out.print("\u001B[" + tail + "D"); // move cursor left past the tail
       out.flush();
+    }
+
+    // ---- history --------------------------------------------------------------------- //
+    private void historyPrevious() {
+      if (hist == 0) return;
+      if (hist == history.size()) draft = buf.toString();
+      buf.setLength(0);
+      buf.append(history.get(--hist));
+      pos = buf.length();
+    }
+
+    private void historyNext() {
+      if (hist >= history.size()) return;
+      hist++;
+      buf.setLength(0);
+      buf.append(hist == history.size() ? draft : history.get(hist));
+      pos = buf.length();
     }
   }
 }
