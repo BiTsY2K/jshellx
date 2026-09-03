@@ -8,7 +8,6 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
 import com.jshellx.context.CommandHistory;
-import com.jshellx.parser.Command;
 
 /**
  * A tiny readline replacement. (Version 1: type, backspace, Enter, Ctrl-C, Ctrl-D.)
@@ -109,30 +108,27 @@ public final class LineEditor {
       while (true) {
         int c = readCodePoint();
         switch (c) {
-          case -1 -> {
-            return new Eof();
-          }
-          case '\r', '\n' -> {
-            out.print("\r\n");
-            out.flush();
-            return new Line(buf.toString());
-          }
-          case 3 -> { // Ctrl-C
-            out.print("^C\r\n");
-            out.flush();
-            return new Interrupted();
-          }
-          case 4 -> { // Ctrl-D: EOF on an empty line, otherwise ignored for now
-            if (buf.isEmpty()) {
-              out.print("\r\n");
-              out.flush();
-              return new Eof();
-            }
-          }
+          // @formatter:off
+          case -1 -> { return new Eof(); }
+          case '\r', '\n' -> { out.print("\r\n");   out.flush(); return new Line(buf.toString()); }
+          
+          // Ctrl-D: EOF on an empty line, otherwise ignored for now
+          case 4 -> { if (buf.isEmpty()) { out.print("\r\n"); out.flush(); return new Eof(); } }
+          case 3 -> { out.print("^C\r\n"); out.flush(); return new Interrupted(); } // Ctrl-C 
 
           case 16 -> historyPrevious();
           case 14 -> historyNext();
           case 8, 127 -> backspace();
+
+          case 27 -> {
+            int next = rawInput().read();
+            if (next == '[' || next == 'O') {
+              switch (rawInput().read()) {
+                case 'A' -> historyPrevious(); // Up(ESC [ A)
+                case 'B' -> historyNext(); // Down
+              }
+            }
+          }
 
           default -> {
             if (c >= 32) insert(c);
