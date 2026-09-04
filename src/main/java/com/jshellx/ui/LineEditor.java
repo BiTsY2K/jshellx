@@ -116,17 +116,18 @@ public final class LineEditor {
           case 4 -> { 
             // Ctrl-D: EOF on an empty line, otherwise ignored for now
             if (buf.isEmpty()) { out.print("\r\n"); out.flush(); return new Eof(); } 
+            deleteForward();
           }
 
           case 16 -> historyPrevious();
           case 14 -> historyNext();
-          case  2 -> { left(); continue; }
-          case  6 -> { right(); continue; }
+          case  2 -> left();
+          case  6 -> right();
           case 27 -> escapeSequence();
 
           case 8, 127 -> backspace();
 
-          default -> { if (c >= 32) insert(c); continue; } // printable characters
+          default -> { if (c >= 32) insert(c); } // printable characters
           // @formatter:on
         }
         redraw();
@@ -137,28 +138,15 @@ public final class LineEditor {
       int oldPos = pos;
       buf.insert(oldPos, new String(Character.toChars(cp)));
       pos = oldPos + Character.charCount(cp);
-
-      // Build the entire ANSI sequence in memory first to avoid multiple redraw ticks
-      StringBuilder sb = new StringBuilder();
-      sb.append(buf.substring(oldPos)); // Print from old cursor to end
-      sb.append("\u001B[K"); // Clear to end of line
-
-      int tailCount = buf.codePointCount(pos, buf.length());
-      if (tailCount > 0) sb.append("\u001B[").append(tailCount).append("D"); // Move cursor back
-      out.print(sb.toString());
-      out.flush();
     }
 
-    private void left() {
-      if (pos > 0) pos = buf.offsetByCodePoints(pos, -1);
-      out.print("\u001B[D"); // ANSI code to move cursor left by 1
-      out.flush();
-    }
+    // @formatter:off
+    private void left() { if (pos > 0) pos = buf.offsetByCodePoints(pos, -1); }
+    private void right() { if (pos < buf.length()) pos = buf.offsetByCodePoints(pos, 1); }
+    // @formatter:on
 
-    private void right() {
-      if (pos < buf.length()) pos = buf.offsetByCodePoints(pos, 1);
-      out.print("\u001B[C"); // ANSI code to move cursor right by 1
-      out.flush();
+    private void deleteForward() {
+      if (pos < buf.length()) buf.delete(pos, buf.offsetByCodePoints(pos, 1));
     }
 
     private void backspace() {
@@ -170,9 +158,12 @@ public final class LineEditor {
 
     /** Repaints the whole line and puts the cursor back where it belongs. */
     private void redraw() {
-      out.print("\r" + prompt + buf + "\u001B[K"); // CR, prompt, text, erase to end of line
+      StringBuilder sb = new StringBuilder();
+      // Build the entire ANSI sequence in memory first to avoid multiple redraw ticks
+      sb.append("\r").append(prompt).append(buf).append("\u001B[K"); // CR, prompt, text, erase to end of line
       int tail = buf.codePointCount(pos, buf.length());
-      if (tail > 0) out.print("\u001B[" + tail + "D"); // move cursor left past the tail
+      if (tail > 0) sb.append("\u001B[").append(tail).append("D"); // move cursor left past the tail
+      out.print(sb.toString());
       out.flush();
     }
 
