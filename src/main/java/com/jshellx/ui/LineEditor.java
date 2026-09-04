@@ -110,14 +110,18 @@ public final class LineEditor {
         switch (c) {
           // @formatter:off
           case -1 -> { return new Eof(); }
-          case '\r', '\n' -> { out.print("\r\n");   out.flush(); return new Line(buf.toString()); }
-          
-          // Ctrl-D: EOF on an empty line, otherwise ignored for now
-          case 4 -> { if (buf.isEmpty()) { out.print("\r\n"); out.flush(); return new Eof(); } }
+          case '\r', '\n' -> { out.print("\r\n"); out.flush(); return new Line(buf.toString()); }
           case 3 -> { out.print("^C\r\n"); out.flush(); return new Interrupted(); } // Ctrl-C 
+          
+          case 4 -> { 
+            // Ctrl-D: EOF on an empty line, otherwise ignored for now
+            if (buf.isEmpty()) { out.print("\r\n"); out.flush(); return new Eof(); }
+          }
 
           case 16 -> historyPrevious();
           case 14 -> historyNext();
+          case  2 -> left();
+          case  6 -> right();
           case 8, 127 -> backspace();
 
           case 27 -> {
@@ -130,9 +134,8 @@ public final class LineEditor {
             }
           }
 
-          default -> {
-            if (c >= 32) insert(c);
-          } // printable characters
+          default -> { if (c >= 32) insert(c); } // printable characters
+          // @formatter:on
         }
         redraw();
       }
@@ -142,6 +145,11 @@ public final class LineEditor {
       buf.insert(pos, new String(Character.toChars(cp)));
       pos += Character.charCount(cp);
     }
+
+    // @formatter:off
+    private void left()  { if (pos > 0) pos = buf.offsetByCodePoints(pos, -1); }
+    private void right() { if (pos < buf.length()) pos = buf.offsetByCodePoints(pos, 1); }
+    // @formatter:on
 
     private void backspace() {
       if (pos == 0) return;
@@ -162,16 +170,17 @@ public final class LineEditor {
     private void historyPrevious() {
       if (hist == 0) return;
       if (hist == history.size()) draft = buf.toString();
-      buf.setLength(0);
-      buf.append(history.get(--hist));
-      pos = buf.length();
+      showHistory(history.get(--hist));
     }
 
     private void historyNext() {
       if (hist >= history.size()) return;
-      hist++;
+      showHistory((++hist == history.size()) ? draft : history.get(hist));
+    }
+
+    private void showHistory(String history) {
       buf.setLength(0);
-      buf.append(hist == history.size() ? draft : history.get(hist));
+      buf.append(history);
       pos = buf.length();
     }
   }
