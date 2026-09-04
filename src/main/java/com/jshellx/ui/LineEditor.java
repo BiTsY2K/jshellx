@@ -115,24 +115,16 @@ public final class LineEditor {
           
           case 4 -> { 
             // Ctrl-D: EOF on an empty line, otherwise ignored for now
-            if (buf.isEmpty()) { out.print("\r\n"); out.flush(); return new Eof(); }
+            if (buf.isEmpty()) { out.print("\r\n"); out.flush(); return new Eof(); } 
           }
 
           case 16 -> historyPrevious();
           case 14 -> historyNext();
           case  2 -> left();
           case  6 -> right();
-          case 8, 127 -> backspace();
+          case 27 -> escapeSequence();
 
-          case 27 -> {
-            int next = rawInput().read();
-            if (next == '[' || next == 'O') {
-              switch (rawInput().read()) {
-                case 'A' -> historyPrevious(); // Up(ESC [ A)
-                case 'B' -> historyNext(); // Down
-              }
-            }
-          }
+          case 8, 127 -> backspace();
 
           default -> { if (c >= 32) insert(c); } // printable characters
           // @formatter:on
@@ -164,6 +156,28 @@ public final class LineEditor {
       int tail = buf.codePointCount(pos, buf.length());
       if (tail > 0) out.print("\u001B[" + tail + "D"); // move cursor left past the tail
       out.flush();
+    }
+
+    // ---- escape sequences: arrows ---------------------------------------------------- //
+    private void escapeSequence() throws IOException {
+      InputStream in = rawInput();
+      if (in.available() == 0) return; // a lone ESC key press: ignore
+
+      int intro = in.read();
+      if (intro != '[' && intro != 'O') return; // Alt+key: ignore
+
+      int last;
+      while (true) {
+        last = in.read();
+        if (last < 0 || (last >= 0x40 && last <= 0x7E)) break; // final byte of the sequence
+      }
+
+      switch (last) {
+        case 'A' -> historyPrevious();
+        case 'B' -> historyNext();
+        case 'C' -> right();
+        case 'D' -> left();
+      }
     }
 
     // ---- history --------------------------------------------------------------------- //
