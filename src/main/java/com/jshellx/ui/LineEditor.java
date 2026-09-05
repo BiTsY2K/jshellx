@@ -119,10 +119,11 @@ public final class LineEditor {
             deleteForward();
           }
 
-          case 16 -> historyPrevious();
-          case 14 -> historyNext();
-          case  2 -> left();
-          case  6 -> right();
+          case 16 -> historyPrevious(); // Ctrl-P
+          case 14 -> historyNext(); // Ctrl-N
+          case  2 -> left();  // Ctrl-B
+          case  6 -> right(); // Ctrl-F
+          case 23 -> deleteWordBack();  // Ctrl-W
           case 27 -> escapeSequence();
 
           case 8, 127 -> backspace();
@@ -154,6 +155,19 @@ public final class LineEditor {
       int previous = buf.offsetByCodePoints(pos, -1);
       buf.delete(previous, pos);
       pos = previous;
+    }
+
+    private void deleteWordBack() {
+      int start = wordStart(pos);
+      buf.delete(start, pos);
+      pos = start;
+    }
+
+    private int wordStart(int from) {
+      int p = from;
+      while (p > 0 && buf.charAt(p - 1) == ' ') p--;
+      while (p > 0 && buf.charAt(p - 1) != ' ') p--;
+      return p;
     }
 
     /** Repaints the whole line and puts the cursor back where it belongs. */
