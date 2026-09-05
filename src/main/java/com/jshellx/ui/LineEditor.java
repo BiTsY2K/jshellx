@@ -119,10 +119,14 @@ public final class LineEditor {
             deleteForward();
           }
 
-          case 16 -> historyPrevious(); // Ctrl-P
-          case 14 -> historyNext(); // Ctrl-N
+          case  1 -> pos = 0; // Ctrl-A
+          case  5 -> pos = buf.length(); // Ctrl-E
           case  2 -> left();  // Ctrl-B
           case  6 -> right(); // Ctrl-F
+          case 16 -> historyPrevious(); // Ctrl-P
+          case 14 -> historyNext();     // Ctrl-N
+          case 11 -> buf.setLength(pos);              // Ctrl-K
+          case 21 -> { buf.delete(0, pos); pos = 0; } // Ctrl-U
           case 23 -> deleteWordBack();  // Ctrl-W
           case 27 -> escapeSequence();
 
@@ -206,18 +210,24 @@ public final class LineEditor {
 
       boolean ctrl = params.toString().endsWith(";5");
 
+      // @formatter:off
       switch (last) {
         case 'A' -> historyPrevious();
         case 'B' -> historyNext();
-        case 'C' -> {
-          if (ctrl) pos = wordEnd(pos);
-          else right();
+        case 'C' -> { if (ctrl) pos = wordEnd(pos); else right(); }
+        case 'D' -> { if (ctrl) pos = wordStart(pos); else left(); }
+        case 'H' -> pos = 0;
+        case 'F' -> pos = buf.length();
+        case '~' -> {
+          switch (params.toString()) {
+            case "1", "7" -> pos = 0;
+            case "4", "8" -> pos = buf.length();
+            default -> { }
+          }
         }
-        case 'D' -> {
-          if (ctrl) pos = wordStart(pos);
-          else left();
-        }
+        default -> { }
       }
+      // @formatter:on
     }
 
     // ---- history --------------------------------------------------------------------- //
