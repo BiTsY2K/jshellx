@@ -170,6 +170,13 @@ public final class LineEditor {
       return p;
     }
 
+    private int wordEnd(int from) {
+      int p = from;
+      while (p < buf.length() && buf.charAt(p) == ' ') p++;
+      while (p < buf.length() && buf.charAt(p) != ' ') p++;
+      return p;
+    }
+
     /** Repaints the whole line and puts the cursor back where it belongs. */
     private void redraw() {
       StringBuilder sb = new StringBuilder();
@@ -190,16 +197,26 @@ public final class LineEditor {
       if (intro != '[' && intro != 'O') return; // Alt+key: ignore
 
       int last;
+      StringBuilder params = new StringBuilder();
       while (true) {
         last = in.read();
         if (last < 0 || (last >= 0x40 && last <= 0x7E)) break; // final byte of the sequence
+        params.append((char) last);
       }
+
+      boolean ctrl = params.toString().endsWith(";5");
 
       switch (last) {
         case 'A' -> historyPrevious();
         case 'B' -> historyNext();
-        case 'C' -> right();
-        case 'D' -> left();
+        case 'C' -> {
+          if (ctrl) pos = wordEnd(pos);
+          else right();
+        }
+        case 'D' -> {
+          if (ctrl) pos = wordStart(pos);
+          else left();
+        }
       }
     }
 
