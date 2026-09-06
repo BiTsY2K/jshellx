@@ -6,8 +6,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import com.jshellx.context.CommandHistory;
+import com.jshellx.ui.Completer.Completion;
 
 /**
  * A tiny readline replacement. (Version 1: type, backspace, Enter, Ctrl-C, Ctrl-D.)
@@ -31,13 +33,16 @@ public final class LineEditor {
   private final InputStream in;
   private final PrintStream out;
   private final CommandHistory history;
+  private final Completer completer;
   private final RawTerminal terminal; // null => cooked fallback
   private BufferedReader cooked;
 
-  public LineEditor(InputStream in, PrintStream out, CommandHistory history, RawTerminal terminal) {
+  public LineEditor(InputStream in, PrintStream out, CommandHistory history, Completer completer,
+      RawTerminal terminal) {
     this.in = in;
     this.out = out;
     this.history = history;
+    this.completer = completer;
     this.terminal = terminal;
   }
 
@@ -123,6 +128,7 @@ public final class LineEditor {
           case  5 -> pos = buf.length(); // Ctrl-E
           case  2 -> left();  // Ctrl-B
           case  6 -> right(); // Ctrl-F
+          case  9 -> complete();
           case 16 -> historyPrevious(); // Ctrl-P
           case 14 -> historyNext();     // Ctrl-N
           case 11 -> buf.setLength(pos);              // Ctrl-K
@@ -246,6 +252,16 @@ public final class LineEditor {
       buf.setLength(0);
       buf.append(history);
       pos = buf.length();
+    }
+
+    // ---- tab completion -------------------------------------------------------------- //
+    private void complete() {
+      Completion result = completer.complete(buf.toString(), pos);
+      List<String> candidates = result.candidates();
+      if (candidates.isEmpty()) {
+        out.print("\u0007"); // bell
+        return;
+      }
     }
   }
 }

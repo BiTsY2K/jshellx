@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import com.jshellx.builtin.BuiltinRegistry;
 import com.jshellx.builtin.IoStreams;
@@ -15,6 +16,7 @@ import com.jshellx.exec.ExecutableFinder;
 import com.jshellx.exec.ProcessLauncher;
 import com.jshellx.parser.CommandParser;
 import com.jshellx.ui.Ansi;
+import com.jshellx.ui.Completer;
 import com.jshellx.ui.LineEditor;
 import com.jshellx.ui.PromptRenderer;
 import com.jshellx.ui.RawTerminal;
@@ -39,7 +41,8 @@ public class JShellXMain {
     Evaluator evaluator = new Evaluator(ctx, builtins, parser, launcher, io);
 
     RawTerminal raw = RawTerminal.open().orElse(null); // null => basic line mode
-    LineEditor editor = new LineEditor(System.in, out, ctx.history(), raw);
+    Completer noCompletion = (line, cursor) -> new Completer.Completion(cursor, List.of());
+    LineEditor editor = new LineEditor(System.in, out, ctx.history(), noCompletion, raw);
     int code = new Shell(ctx, evaluator, new PromptRenderer(ctx), editor, out).run();
     System.exit(code);
   }
