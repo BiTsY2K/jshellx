@@ -262,6 +262,48 @@ public final class LineEditor {
         out.print("\u0007"); // bell
         return;
       }
+      String current = buf.substring(result.start(), pos);
+      String replacement;
+      if (candidates.size() == 1) {
+        replacement = candidates.get(0);
+        if (!replacement.endsWith("/")) replacement += " ";
+      } else {
+        replacement = commonPrefix(candidates);
+        if (replacement.length() <= current.length()) {
+          list(candidates);
+          return;
+        }
+      }
+      buf.replace(result.start(), pos, replacement);
+      pos = result.start() + replacement.length();
+    }
+
+    private void list(List<String> candidates) {
+      int width = candidates.stream().mapToInt(s -> leaf(s).length()).max().orElse(0) + 2;
+      int perLine = Math.max(1, 80 / width);
+      out.print("\r\n");
+      int count = 0;
+      for (String candidate : candidates) {
+        out.print(String.format("%-" + width + "s", leaf(candidate)));
+        if (++count % perLine == 0) out.print("\r\n");
+      }
+      if (count % perLine != 0) out.print("\r\n");
+    }
+
+    private static String leaf(String candidate) {
+      String trimmed = candidate.endsWith("/") ? candidate.substring(0, candidate.length() - 1) : candidate;
+      return candidate.substring(trimmed.lastIndexOf('/') + 1);
+    }
+
+    private static String commonPrefix(List<String> items) {
+      String prefix = items.get(0);
+      for (String item : items) {
+        int i = 0;
+        int max = Math.min(prefix.length(), item.length());
+        while (i < max && prefix.charAt(i) == item.charAt(i)) i++;
+        prefix = prefix.substring(0, i);
+      }
+      return prefix;
     }
   }
 }

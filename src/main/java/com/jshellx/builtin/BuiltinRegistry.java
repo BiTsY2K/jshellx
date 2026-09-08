@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 
 import com.jshellx.builtin.commands.AliasCommand;
@@ -31,6 +32,10 @@ public final class BuiltinRegistry {
 
   public Optional<BuiltinCommand> find(String name) {
     return Optional.ofNullable(commands.get(name));
+  }
+
+  public Set<String> names() {
+    return Collections.unmodifiableSet(commands.keySet());
   }
 
   /** The standard JshellX command set. */
