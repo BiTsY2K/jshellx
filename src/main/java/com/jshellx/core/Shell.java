@@ -8,6 +8,7 @@ import com.jshellx.context.ShellContext;
 import com.jshellx.eval.Evaluator;
 import com.jshellx.ui.LineEditor;
 import com.jshellx.ui.PromptRenderer;
+import com.jshellx.ui.SignalSupport;
 
 import static com.jshellx.ui.Ansi.BOLD;
 import static com.jshellx.ui.Ansi.CYAN;
@@ -33,11 +34,14 @@ public final class Shell {
   }
 
   /** Runs until {@code exit} or Ctrl-D. @return the process exit code */
-  public int run() throws IOException {
+  public int run() {
     Path historyFile = Path.of(ctx.cwd().toString(), ".jshellx_history");
     ctx.history().load(historyFile);
+
     out.printf("%s  -  type 'help' for commands, Ctrl-D to quit.%n", style("JshellX " + VERSION, CYAN, BOLD));
     if (!editor.isRaw()) out.println("(basic line mode: no tab completion or arrow-key history in this terminal)");
+
+    SignalSupport.onInterrupt(evaluator::interrupt);
 
     try {
       while (ctx.isRunning()) {
