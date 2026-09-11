@@ -190,8 +190,9 @@ public final class LineEditor {
 
     // ---- escape sequences: arrows ---------------------------------------------------- //
     private void escapeSequence() throws IOException {
-      int intro = in.read();
       if (in.available() == 0) return; // a lone ESC key press: ignore
+
+      int intro = in.read();
       if (intro != '[' && intro != 'O') return; // Alt+key: ignore
 
       int last;
