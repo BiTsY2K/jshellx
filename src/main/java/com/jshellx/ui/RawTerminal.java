@@ -1,29 +1,27 @@
 package com.jshellx.ui;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-import org.jline.terminal.Attributes;
-import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
+import com.jshellx.context.ShellContext;
 
 /**
  * Switches the controlling terminal between "cooked" mode (the OS edits the line) and "raw"
- * mode (we receive every key) by using JLine's cross-platform terminal abstraction.
+ * mode (we receive every key) by running the POSIX {@code stty} utility on our own stdin.
  *
  * <p>
- * On Linux/macOS JLine uses the native PTY; on Windows 10+ it uses the Console API
- * ({@code kernel32.dll}) to enable Virtual Terminal Input. When stdin is not a terminal
- * (piped input, IDE console, ...) {@link #open()} returns empty.
+ * {@link #open()} returns empty on Windows and whenever stdin is not a terminal (pipes, IDE
+ * console, CI): {@code stty -g} fails there, which doubles as tty detection.
  */
 public final class RawTerminal {
 
-  private final Terminal terminal;
-  private final Attributes saved;
+  private final String saved; // output of 'stty -g': the settings to restore
   private boolean raw;
 
-  private RawTerminal(Terminal terminal, Attributes saved) {
-    this.terminal = terminal;
+  private RawTerminal(String saved) {
     this.saved = saved;
   }
 
@@ -32,65 +30,56 @@ public final class RawTerminal {
    * terminal (pipes, IDE console, CI) or if the terminal cannot be opened.
    */
   public static Optional<RawTerminal> open() {
+    if (ShellContext.isWindows()) return Optional.empty();
     try {
-      Terminal terminal = TerminalBuilder.builder()
-          .system(true) // use system terminal (not dumb)
-          .jansi(false) // we already handle ANSI ourselves
-          .build();
+      String saved = stty("-g").strip();
+      if (saved.isEmpty()) return Optional.empty();
 
-      // JLine returns a "dumb" terminal when it can't detect a real one.
-      if (terminal.getType().equals(Terminal.TYPE_DUMB)
-          || terminal.getType().equals(Terminal.TYPE_DUMB_COLOR)) {
-        terminal.close();
-        return Optional.empty();
-      }
-
-      Attributes saved = terminal.getAttributes();
-      RawTerminal raw = new RawTerminal(terminal, new Attributes(saved));
+      RawTerminal rawTerminal = new RawTerminal(saved);
 
       // Never leave the user's terminal in raw mode, even after a crash or kill.
-      Runtime.getRuntime().addShutdownHook(new Thread(raw::restore));
-      return Optional.of(raw);
+      Runtime.getRuntime().addShutdownHook(new Thread(rawTerminal::restore));
+      return Optional.of(rawTerminal);
 
     } catch (IOException e) {
       return Optional.empty();
     }
   }
 
-  /**
-   * Returns the JLine terminal's input stream, which must be used for reading
-   * in raw mode (on Windows, System.in cannot read individual keystrokes).
-   */
-  public java.io.InputStream input() {
-    return terminal.input();
-  }
-
   /** No line buffering, no echo, no signal keys (Ctrl-C arrives as byte 3), 1-byte reads. */
   public synchronized void enterRaw() throws IOException {
-    Attributes attrs = new Attributes(saved);
-
-    // Disable canonical mode (no line buffering)
-    attrs.setLocalFlag(Attributes.LocalFlag.ICANON, false);
-    // Disable echo
-    attrs.setLocalFlag(Attributes.LocalFlag.ECHO, false);
-    // Disable signal generation from Ctrl-C/Ctrl-Z so we receive them as bytes
-    attrs.setLocalFlag(Attributes.LocalFlag.ISIG, false);
-    // Disable extended input processing
-    attrs.setLocalFlag(Attributes.LocalFlag.IEXTEN, false);
-    // Disable XON/XOFF flow control (Ctrl-S/Ctrl-Q)
-    attrs.setInputFlag(Attributes.InputFlag.IXON, false);
-
-    // Minimum 1 byte, no timeout
-    attrs.setControlChar(Attributes.ControlChar.VMIN, 1);
-    attrs.setControlChar(Attributes.ControlChar.VTIME, 0);
-
-    terminal.setAttributes(attrs);
+    // Disable canonical mode (no line buffering), echo, signal generation from Ctrl-C/Ctrl-Z so we receive them as
+    // bytes, disable extended input processing, XON/XOFF flow control (Ctrl-S/Ctrl-Q)
+    stty("-icanon", "-echo", "-isig", "-iexten", "-ixon", "min", "1", "time", "0");
     raw = true;
   }
 
   public synchronized void restore() {
     if (!raw) return;
-    terminal.setAttributes(saved);
     raw = false;
+    try {
+      stty(saved);
+    } catch (IOException e) {
+      // best effort: no other way to reset the terminal
+    }
+  }
+
+  private static String stty(String... args) throws IOException {
+    List<String> command = new ArrayList<>();
+    command.add("stty");
+    command.addAll(List.of(args));
+    ProcessBuilder pb = new ProcessBuilder(command);
+    Process p = pb.redirectInput(ProcessBuilder.Redirect.INHERIT) // stty acts on its stdin: our terminal
+        .redirectError(ProcessBuilder.Redirect.DISCARD)
+        .start();
+    String output = new String(p.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+    try {
+      if (p.waitFor() != 0)
+        throw new IOException("stty " + String.join(" ", args) + " failed");
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted while running stty", e);
+    }
+    return output;
   }
 }
