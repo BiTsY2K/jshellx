@@ -1,15 +1,7 @@
 package com.jshellx.eval;
 
-import com.jshellx.builtin.BuiltinCommand;
-import com.jshellx.builtin.BuiltinRegistry;
-import com.jshellx.builtin.IoStreams;
-import com.jshellx.context.ShellContext;
-import com.jshellx.exec.ProcessLauncher;
-import com.jshellx.exec.ProcessLauncher.CommandNotFoundException;
-import com.jshellx.parser.Command;
-import com.jshellx.parser.CommandParser;
-import com.jshellx.parser.ParseException;
-import com.jshellx.parser.Pipeline;
+import static java.lang.ProcessBuilder.Redirect.INHERIT;
+import static java.lang.ProcessBuilder.Redirect.PIPE;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,8 +22,16 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static java.lang.ProcessBuilder.Redirect.INHERIT;
-import static java.lang.ProcessBuilder.Redirect.PIPE;
+import com.jshellx.builtin.BuiltinCommand;
+import com.jshellx.builtin.BuiltinRegistry;
+import com.jshellx.builtin.IoStreams;
+import com.jshellx.context.ShellContext;
+import com.jshellx.exec.ProcessLauncher;
+import com.jshellx.exec.ProcessLauncher.CommandNotFoundException;
+import com.jshellx.parser.Command;
+import com.jshellx.parser.CommandParser;
+import com.jshellx.parser.ParseException;
+import com.jshellx.parser.Pipeline;
 
 /**
  * Executes parsed pipelines.
@@ -177,6 +177,7 @@ public final class Evaluator {
         try {
           c.close();
         } catch (Exception ignored) {
+          // best effort: we don't want to mask the original error
         }
       }
     }
@@ -211,6 +212,7 @@ public final class Evaluator {
       try {
         c.close();
       } catch (IOException ignored) {
+        // best effort: we don't want to mask the original error
       }
     }
   }

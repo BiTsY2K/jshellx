@@ -2,7 +2,6 @@ package com.jshellx;
 
 import java.io.FileDescriptor;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -29,7 +28,7 @@ public class JShellXMain {
 
   private JShellXMain() {}
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     Ansi.enableWindowsVt();
     System.exit(run(args)); // pump/signal threads must not keep the JVM alive
   }
@@ -57,7 +56,6 @@ public class JShellXMain {
     RawTerminal raw = RawTerminal.open().orElse(null); // null => basic line mode
     ShellCompleter completer = new ShellCompleter(ctx, builtins, execfinder);
     LineEditor editor = new LineEditor(System.in, out, ctx.history(), completer, raw);
-    int code = new Shell(ctx, evaluator, new PromptRenderer(ctx), editor, out).run();
-    return code;
+    return new Shell(ctx, evaluator, new PromptRenderer(ctx), editor, out).run(); // returns exit status
   }
 }
