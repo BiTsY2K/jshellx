@@ -1,7 +1,19 @@
 {
   "editor.tabSize": 2,
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
 
   "java.format.settings.url": "${workspaceFolder}/java.formatter.xml",
   "java.format.settings.profile": "JShellX",
-  "java.format.enabled": true
+  "java.format.enabled": true,
+
+  "[java]": {
+    "editor.defaultFormatter": "redhat.java",
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "file",
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  }
 }

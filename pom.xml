@@ -58,6 +58,17 @@
         <version>3.5.2</version>
       </plugin>
 
+      <!-- mvn formatter:format (rewrite) / mvn formatter:validate (check only); same profile VS Code uses on save -->
+      <plugin>
+        <groupId>net.revelc.code.formatter</groupId>
+        <artifactId>formatter-maven-plugin</artifactId>
+        <version>2.24.1</version>
+        <configuration>
+          <configFile>${project.basedir}/java.formatter.xml</configFile>
+          <lineEnding>LF</lineEnding>
+        </configuration>
+      </plugin>
+
       <!-- mvn exec:java -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>

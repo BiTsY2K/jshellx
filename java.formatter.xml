@@ -32,6 +32,11 @@
     <setting id="org.eclipse.jdt.core.formatter.disabling_tag" value="@formatter:off"/>
     <setting id="org.eclipse.jdt.core.formatter.enabling_tag" value="@formatter:on"/>
     
+    <!-- Indentation: 2 spaces, no tabs -->
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.char" value="space"/>
+    <setting id="org.eclipse.jdt.core.formatter.tabulation.size" value="2"/>
+    <setting id="org.eclipse.jdt.core.formatter.indentation.size" value="2"/>
+
     <!-- Other settings -->
     <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
     <setting id="org.eclipse.jdt.core.formatter.comment_line_length" value="120"/>
@@ -50,5 +55,8 @@
     <!-- Keep single-line Javadoc on one line when it fits: /** Short comment. */ -->
     <setting id="org.eclipse.jdt.core.formatter.comment.format_source_code" value="true"/>
     <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
+    <!-- Keep @param descriptions on the tag line: @param args arguments without the command name -->
+    <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_for_parameter" value="do not insert"/>
+    <setting id="org.eclipse.jdt.core.formatter.comment.indent_parameter_description" value="false"/>
   </profile>
 </profiles>
