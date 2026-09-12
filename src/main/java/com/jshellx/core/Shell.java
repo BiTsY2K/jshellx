@@ -1,5 +1,9 @@
 package com.jshellx.core;
 
+import static com.jshellx.ui.Ansi.BOLD;
+import static com.jshellx.ui.Ansi.CYAN;
+import static com.jshellx.ui.Ansi.style;
+
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -9,10 +13,6 @@ import com.jshellx.eval.Evaluator;
 import com.jshellx.ui.LineEditor;
 import com.jshellx.ui.PromptRenderer;
 import com.jshellx.ui.SignalSupport;
-
-import static com.jshellx.ui.Ansi.BOLD;
-import static com.jshellx.ui.Ansi.CYAN;
-import static com.jshellx.ui.Ansi.style;
 
 public final class Shell {
 
@@ -35,7 +35,7 @@ public final class Shell {
 
   /** Runs until {@code exit} or Ctrl-D. @return the process exit code */
   public int run() {
-    Path historyFile = Path.of(ctx.cwd().toString(), ".jshellx_history");
+    Path historyFile = Path.of(ctx.home(), ".jshellx_history");
     ctx.history().load(historyFile);
 
     out.printf("%s  -  type 'help' for commands, Ctrl-D to quit.%n", style("JshellX " + VERSION, CYAN, BOLD));
@@ -49,7 +49,7 @@ public final class Shell {
         try {
           result = editor.readLine(prompt.render());
         } catch (IOException e) {
-          out.printf("jshellx: terminal error: %s" + e.getMessage());
+          out.printf("jshellx: terminal error: %s", e.getMessage());
           ctx.requestExit(1);
           break;
         }
