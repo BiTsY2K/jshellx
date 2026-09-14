@@ -29,6 +29,7 @@ import com.jshellx.context.ShellContext;
 import com.jshellx.exec.ProcessLauncher;
 import com.jshellx.exec.ProcessLauncher.CommandNotFoundException;
 import com.jshellx.parser.Command;
+import com.jshellx.parser.CommandList;
 import com.jshellx.parser.CommandParser;
 import com.jshellx.parser.ParseException;
 import com.jshellx.parser.Pipeline;
@@ -67,10 +68,34 @@ public final class Evaluator {
     this.terminal = terminal;
   }
 
-  /** Parses and runs one input line. @return its exit status */
+  /** Runs one input line: pipelines joined by ';', '&&' and '||'. @return the last status */
   public int evaluate(String line) {
+    CommandList list;
     try {
-      Optional<Pipeline> pipeline = parser.parse(line);
+      list = parser.splitList(line);
+    } catch (ParseException e) {
+      terminal.err().println("jshellx: " + e.getMessage());
+      return 2;
+    }
+    int status = ctx.lastExitCode();
+    for (CommandList.Segment segment : list.segments()) {
+      boolean run = switch (segment.connector()) {
+        case ALWAYS -> true;
+        case IF_SUCCESS -> status == 0;
+        case IF_FAILURE -> status != 0;
+      };
+      if (!run) continue; // a skipped segment keeps the previous status
+      status = evaluatePipeline(segment.source());
+      ctx.setLastExitCode(status); // the next segment's $? must see this
+      if (!ctx.isRunning() || status == 130) break; // `exit`, or Ctrl-C stops the rest of the line
+    }
+    return status;
+  }
+
+  /** Parses and runs one input line. @return its exit status */
+  private int evaluatePipeline(String source) {
+    try {
+      Optional<Pipeline> pipeline = parser.parse(source);
       terminal.out().println("parsed: " + pipeline.get()); // TEMPORARY: see the structure
       return pipeline.map(this::execute).orElse(0);
     } catch (ParseException e) {
