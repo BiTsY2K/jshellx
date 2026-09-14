@@ -1,13 +1,13 @@
 package com.jshellx.parser;
 
-import com.jshellx.context.ShellContext;
-import com.jshellx.parser.Token.Type;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+
+import com.jshellx.context.ShellContext;
+import com.jshellx.parser.Token.Type;
 
 /** Turns a raw input line into a {@link Pipeline}: tokenize, then build stages. */
 public final class CommandParser {
@@ -25,6 +25,11 @@ public final class CommandParser {
     if (name.equals("?")) return Integer.toString(ctx.lastExitCode());
     String value = ctx.getEnv(name);
     return (value == null && name.equals("HOME")) ? ctx.home() : value;
+  }
+
+  /** Splits a line at ';', '&&' and '||' without expanding anything. */
+  public CommandList splitList(String line) throws ParseException {
+    return ListSplitter.split(line, !ShellContext.isWindows());
   }
 
   /** @return the pipeline, or empty for a blank line */
