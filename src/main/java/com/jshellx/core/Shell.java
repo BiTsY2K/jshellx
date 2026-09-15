@@ -49,7 +49,7 @@ public final class Shell {
         try {
           result = editor.readLine(prompt.render());
         } catch (IOException e) {
-          out.printf("jshellx: terminal error: %s", e.getMessage());
+          out.printf("jshellx: terminal error: %s%n", e.getMessage());
           ctx.requestExit(1);
           break;
         }
