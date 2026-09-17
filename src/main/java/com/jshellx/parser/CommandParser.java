@@ -46,7 +46,8 @@ public final class CommandParser {
     for (int i = 0; i < tokens.size(); i++) {
       Token t = tokens.get(i);
       switch (t.type()) {
-        case WORD -> args.add(t.text());
+        case WORD -> args.addAll(!t.isGlob() ? List.of(t.text())
+            : Globber.expand(t, ctx.cwd(), ShellContext.isWindows()));
         case REDIRECT_IN, REDIRECT_OUT, REDIRECT_APPEND -> {
           // a redirection operator must be followed by a file name
           if (i + 1 >= tokens.size() || tokens.get(i + 1).type() != Type.WORD) {

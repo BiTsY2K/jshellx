@@ -1,7 +1,9 @@
 package com.jshellx.parser;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -44,6 +46,7 @@ public final class Tokenizer {
     private final List<Token> tokens = new ArrayList<>();
     private final StringBuilder word = new StringBuilder();
     private boolean inWord; // distinguishes "" (an empty word) from "no word yet"
+    private final Set<Integer> globChars = new HashSet<>(); // unquoted * ? [ ] in `word`
     private int i;
 
     Run(String s) {
@@ -95,6 +98,7 @@ public final class Tokenizer {
           }
 
           default -> {
+            if ("*?[]".indexOf(c) >= 0) globChars.add(word.length()); // unquoted: a wildcard
             word.append(c);
             inWord = true;
             i++;
@@ -107,8 +111,9 @@ public final class Tokenizer {
 
     private void endWord() {
       if (inWord) {
-        tokens.add(new Token(Token.Type.WORD, word.toString()));
+        tokens.add(new Token(Token.Type.WORD, word.toString(), globChars));
         word.setLength(0);
+        globChars.clear();
         inWord = false;
       }
     }
@@ -164,7 +169,7 @@ public final class Tokenizer {
     }
 
     private boolean isEscapable(char c) {
-      return " \t'\"$|<>~;&".indexOf(c) >= 0 || (posixEscapes && c == '\\');
+      return " \t'\"$|<>~;&*?[]".indexOf(c) >= 0 || (posixEscapes && c == '\\');
     }
 
     private void tilde() {
