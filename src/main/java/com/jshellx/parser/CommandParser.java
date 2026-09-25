@@ -7,6 +7,11 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.jshellx.context.ShellContext;
+import com.jshellx.parser.Command.Default;
+import com.jshellx.parser.Command.Output;
+import com.jshellx.parser.Command.ToFile;
+import com.jshellx.parser.Command.ToStderr;
+import com.jshellx.parser.Command.ToStdout;
 import com.jshellx.parser.Token.Type;
 
 /** Turns a raw input line into a {@link Pipeline}: tokenize, then build stages. */
@@ -40,45 +45,72 @@ public final class CommandParser {
     List<Command> stages = new ArrayList<>();
     List<String> args = new ArrayList<>();
     String stdin = null;
-    String stdout = null;
-    boolean append = false;
+    Output stdout = Command.DEFAULT;
+    Output stderr = Command.DEFAULT;
 
+    // Redirections apply left to right, so '> f 2>&1' and '2>&1 > f' differ, as in bash.
     for (int i = 0; i < tokens.size(); i++) {
       Token t = tokens.get(i);
-      switch (t.type()) {
+      Type type = t.type();
+      if (type.takesFile()) { // a redirection operator must be followed by a file name
+        if (i + 1 >= tokens.size() || tokens.get(i + 1).type() != Type.WORD) {
+          throw new ParseException("syntax error: expected a file name after '" + t.text() + "'");
+        }
+        String target = tokens.get(++i).text();
+        switch (type) {
+          // @formatter:off
+          case REDIRECT_IN -> stdin = target;
+          case REDIRECT_OUT, REDIRECT_APPEND -> stdout = new ToFile(target, type == Type.REDIRECT_APPEND);
+          case REDIRECT_ERR, REDIRECT_ERR_APPEND -> stderr = new ToFile(target, type == Type.REDIRECT_ERR_APPEND);
+          default -> { stdout = new ToFile(target, type == Type.REDIRECT_ALL_APPEND); stderr = stdout; }
+          // @formatter:on
+        }
+        continue;
+      }
+      switch (type) {
+        // @formatter:off
         case WORD -> args.addAll(!t.isGlob() ? List.of(t.text())
             : Globber.expand(t, ctx.cwd(), ShellContext.isWindows()));
-        case REDIRECT_IN, REDIRECT_OUT, REDIRECT_APPEND -> {
-          // a redirection operator must be followed by a file name
-          if (i + 1 >= tokens.size() || tokens.get(i + 1).type() != Type.WORD) {
-            throw new ParseException("syntax error: expected a file name after '" + t.text() + "'");
-          }
-          String target = tokens.get(++i).text();
-          switch (t.type()) {
-            // @formatter:off
-            case REDIRECT_IN -> stdin = target;
-            case REDIRECT_OUT -> { stdout = target;  append = false; }
-            default -> { stdout = target; append = true; }
-            // @formatter:on
-          }
-        }
-        case PIPE -> { // close the current stage, start a new one
-          stages.add(finishStage(args, stdin, stdout, append));
+        case ERR_TO_OUT -> stderr = errToOut(stdout);
+        case OUT_TO_ERR -> stdout = outToErr(stderr);
+        default -> { // PIPE: close the current stage, start a new one
+          stages.add(finishStage(args, stdin, stdout, stderr));
           args = new ArrayList<>();
           stdin = null;
-          stdout = null;
-          append = false;
+          stdout = Command.DEFAULT;
+          stderr = Command.DEFAULT;
         }
+        // @formatter:on
       }
     }
-    stages.add(finishStage(args, stdin, stdout, append));
+    stages.add(finishStage(args, stdin, stdout, stderr));
     return Optional.of(new Pipeline(stages));
   }
 
-  private static Command finishStage(List<String> args, String in, String out, boolean append)
+  /** {@code 2>&1}: stderr goes wherever stdout goes <em>now</em>. */
+  private static Output errToOut(Output stdout) {
+    return switch (stdout) {
+      case Default d -> new ToStdout();
+      case ToStderr e -> Command.DEFAULT; // stdout already is the terminal's stderr
+      case ToFile f -> f;
+      case ToStdout o -> o; // not produced for stdout; kept for exhaustiveness
+    };
+  }
+
+  /** {@code >&2}: stdout goes wherever stderr goes <em>now</em>. */
+  private static Output outToErr(Output stderr) {
+    return switch (stderr) {
+      case Default d -> new ToStderr();
+      case ToStdout o -> Command.DEFAULT; // stderr already is the terminal's stdout
+      case ToFile f -> f;
+      case ToStderr e -> e; // not produced for stderr; kept for exhaustiveness
+    };
+  }
+
+  private static Command finishStage(List<String> args, String in, Output out, Output err)
       throws ParseException {
     if (args.isEmpty()) throw new ParseException("syntax error: missing command");
-    return new Command(args, in, out, append);
+    return new Command(args, in, out, err);
   }
 
   // ---- alias expansion ---------------------------------------------------- //

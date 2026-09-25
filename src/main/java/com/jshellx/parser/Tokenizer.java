@@ -13,7 +13,7 @@ import java.util.function.Function;
  * Supports: whitespace separation, single quotes (literal), double quotes
  * (allow {@code $VAR} and a few escapes), backslash escapes, {@code $VAR},
  * {@code ${VAR}}, {@code $?}, a leading {@code ~}, and the operators
- * {@code | < > >>}.
+ * {@code | < > >> 2> 2>> &> &>> 2>&1 >&2}.
  *
  * <p>
  * On Windows ({@code posixEscapes == false}) a backslash is kept literally
@@ -86,27 +86,56 @@ public final class Tokenizer {
             i++;
           }
 
-          case '>' -> {
-            endWord();
-            if (peek(1) == '>') {
-              tokens.add(new Token(Token.Type.REDIRECT_APPEND, ">>"));
-              i += 2;
-            } else {
-              tokens.add(new Token(Token.Type.REDIRECT_OUT, ">"));
-              i++;
-            }
+          case '>' -> redirection();
+          case '&' -> { // '&>' or '&>>'; ListSplitter already rejected every other unquoted '&'
+            if (peek(1) == '>') redirection();
+            else literal(c);
+          }
+          case '1', '2' -> { // a file descriptor only at the start of a word: '2>' but not 'a2>'
+            if (!inWord && peek(1) == '>') redirection();
+            else literal(c);
           }
 
-          default -> {
-            if ("*?[]".indexOf(c) >= 0) globChars.add(word.length()); // unquoted: a wildcard
-            word.append(c);
-            inWord = true;
-            i++;
-          }
+          default -> literal(c);
         }
       }
       endWord();
       return tokens;
+    }
+
+    private void literal(char c) {
+      if ("*?[]".indexOf(c) >= 0) globChars.add(word.length()); // unquoted: a wildcard
+      word.append(c);
+      inWord = true;
+      i++;
+    }
+
+    /** Reads one output redirection at {@code i}: {@code [1|2]> [1|2]>> &> &>> [1|2]>&[1|2]}. */
+    private void redirection() throws ParseException {
+      endWord();
+      int start = i;
+      char fd = s.charAt(i) == '>' ? '1' : s.charAt(i++); // '1', '2', or '&' (both)
+      i++; // the '>'
+      boolean append = peek(0) == '>';
+      if (append) i++;
+
+      if (fd != '&' && !append && peek(0) == '&') { // N>&M: duplicate a descriptor
+        char target = peek(1);
+        if (target != '1' && target != '2') {
+          throw new ParseException("syntax error: expected 1 or 2 after '" + s.substring(start, i + 1) + "'");
+        }
+        i += 2;
+        if (target == fd) return; // 1>&1 and 2>&2 change nothing
+        tokens.add(fd == '2' ? new Token(Token.Type.ERR_TO_OUT, "2>&1") : new Token(Token.Type.OUT_TO_ERR, ">&2"));
+        return;
+      }
+
+      Token.Type type = switch (fd) {
+        case '2' -> append ? Token.Type.REDIRECT_ERR_APPEND : Token.Type.REDIRECT_ERR;
+        case '&' -> append ? Token.Type.REDIRECT_ALL_APPEND : Token.Type.REDIRECT_ALL;
+        default -> append ? Token.Type.REDIRECT_APPEND : Token.Type.REDIRECT_OUT;
+      };
+      tokens.add(new Token(type, s.substring(start, i)));
     }
 
     private void endWord() {

@@ -47,7 +47,7 @@ final class ListSplitter {
         connector = c == ';' ? Connector.ALWAYS : c == '&' ? Connector.IF_SUCCESS : Connector.IF_FAILURE;
         current.setLength(0);
         if (c != ';') i++;
-      } else if (c == '&') {
+      } else if (c == '&' && next != '>' && !endsWith(current, '>')) { // '&>' and '2>&1' are redirections
         throw new ParseException("syntax error: background jobs ('&') are not supported");
       } else {
         current.append(c);
@@ -64,6 +64,10 @@ final class ListSplitter {
           "syntax error: missing command after '" + (connector == Connector.IF_SUCCESS ? "&&" : "||") + "'");
     }
     return new CommandList(segments);
+  }
+
+  private static boolean endsWith(StringBuilder text, char c) {
+    return !text.isEmpty() && text.charAt(text.length() - 1) == c;
   }
 
   private static void add(List<Segment> segments, Connector connector, StringBuilder text, String op)

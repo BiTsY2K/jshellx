@@ -48,22 +48,22 @@ public final class ShellContext {
   public static boolean isWindows() { return WINDOWS; }
 
   public Path cwd() { return cwd; }
-  
+
   // ---- status / lifecycle ------------------------------------------------- //
   public boolean isRunning()  { return running; }
   public int exitCode()       { return exitCode; }
   public int lastExitCode()             { return lastExitCode; }
   public void setLastExitCode(int code) { this.lastExitCode = code; }
-  
-  public void requestExit(int code) { 
-    this.exitCode = code; 
-    this.running = false; 
+
+  public void requestExit(int code) {
+    this.exitCode = code;
+    this.running = false;
   }
 
 
   /** Resolves a (possibly relative) path against the shell's working directory. */
   public Path resolve(String path) { return cwd.resolve(path).normalize(); }
-  
+
   // ---- environment -------------------------------------------------------- //
   public Map<String, String> environment()  { return Collections.unmodifiableMap(env); }
   public void setEnv(String name, String value) { env.put(name, value); }
@@ -72,7 +72,7 @@ public final class ShellContext {
 
   // ---- history ------------------------------------------------------------ //
   public CommandHistory history()   { return history; }
-  
+
   // ---- aliases ------------------------------------------------------------ //
   public Map<String, String> aliases()    { return Collections.unmodifiableMap(aliases); }
   public boolean removeAlias(String name) { return aliases.remove(name) != null; }
@@ -97,7 +97,7 @@ public final class ShellContext {
     if (!Files.exists(next)) throw new IOException(String.format("no such file or directory: %s", target));
     if (!Files.isDirectory(next)) throw new IOException(String.format("no such file or directory: %s", target));
     env.put("OLDPWD", cwd.toString());
-    cwd = next;
     env.put("PWD", next.toString());
+    cwd = next;
   }
 }

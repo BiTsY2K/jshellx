@@ -39,15 +39,21 @@ public final class ProcessLauncher {
     this.finder = finder;
   }
 
-  public Process start(List<String> args, ShellContext ctx,
-      ProcessBuilder.Redirect in, ProcessBuilder.Redirect out) throws IOException {
+  /**
+   * Starts a process in the shell's cwd and environment.
+   *
+   * @param errToOut merge stderr into stdout ({@code 2>&1}, {@code &>}); {@code err} is ignored then
+   */
+  public Process start(List<String> args, ShellContext ctx, ProcessBuilder.Redirect in,
+      ProcessBuilder.Redirect out, ProcessBuilder.Redirect err, boolean errToOut) throws IOException {
     ProcessBuilder pb = new ProcessBuilder(commandLine(args, ctx));
     pb.directory(ctx.cwd().toFile());
     pb.environment().clear();
     pb.environment().putAll(ctx.environment());
     pb.redirectInput(in);
     pb.redirectOutput(out);
-    pb.redirectError(ProcessBuilder.Redirect.INHERIT);
+    pb.redirectError(err);
+    pb.redirectErrorStream(errToOut);
     return pb.start();
   }
 
